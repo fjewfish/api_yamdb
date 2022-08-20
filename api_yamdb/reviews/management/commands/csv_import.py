@@ -1,9 +1,11 @@
 import os
+
 from csv import DictReader
 
-from api_yamdb.settings import BASE_DIR
 from django.contrib.auth import get_user_model
 from django.core.management import BaseCommand
+
+from api_yamdb.settings import BASE_DIR
 
 from ...models import Category, Genre, Title, Review, Comment
 
@@ -28,6 +30,61 @@ class Command(BaseCommand):
         'Title m2m Genre': 'genre_title.csv',
     }
 
+    def _create_model_object(self, model, row):
+        if model == User:
+            model_object = model(
+                id=row['id'],
+                username=row['username'],
+                email=row['email'], role=row['role'],
+                bio=row['bio'],
+                first_name=['first_name'],
+                last_name=['last_name']
+            )
+            model_object.save()
+        if model == Category:
+            model_object = model(
+                id=row['id'],
+                name=row['name'],
+                slug=row['slug']
+            )
+            model_object.save()
+        if model == Genre:
+            model_object = model(
+                id=row['id'],
+                name=row['name'],
+                slug=row['slug']
+            )
+            model_object.save()
+        if model == Title:
+            model_object = model(
+                id=row['id'], name=row['name'],
+                year=row['year'],
+                category=Category.objects.get(id=row['category'])
+            )
+            model_object.save()
+        if model == Review:
+            model_object = model(
+                id=row['id'],
+                title=Title.objects.get(id=row['title_id']),
+                text=row['text'],
+                author=User.objects.get(id=row['author']),
+                score=row['score'],
+                pub_date=row['pub_date']
+            )
+            model_object.save()
+        if model == Comment:
+            model_object = model(
+                id=row['id'],
+                review=Review.objects.get(id=row['review_id']),
+                text=row['text'],
+                author=User.objects.get(id=row['author']),
+                pub_date=row['pub_date']
+            )
+            model_object.save()
+        if model == 'Title m2m Genre':
+            title_object = Title.objects.get(id=row['title_id'])
+            title_object.genre.add(row['genre_id'])
+
     def handle(self, *args, **options):
         for model in self.model_to_csvfile.keys():
             if model != 'Title m2m Genre' and model.objects.exists():
@@ -41,44 +98,4 @@ class Command(BaseCommand):
             print(f"Loading {str(model)} data")
             for row in DictReader(
                     open(os.path.join(BASE_DIR, f'static/data/{csvfile}'))):
-                if model == User:
-                    model_object = model(id=row['id'], username=row['username'],
-                                         email=row['email'], role=row['role'],
-                                         bio=row['bio'],
-                                         first_name=['first_name'],
-                                         last_name=['last_name'])
-                    model_object.save()
-                if model == Category:
-                    model_object = model(id=row['id'], name=row['name'],
-                                         slug=row['slug'])
-                    model_object.save()
-                if model == Genre:
-                    model_object = model(id=row['id'], name=row['name'],
-                                         slug=row['slug'])
-                    model_object.save()
-                if model == Title:
-                    model_object = model(id=row['id'], name=row['name'],
-                                         year=row['year'],
-                                         category=Category.objects.get(
-                                             id=row['category']))
-                    model_object.save()
-                if model == Review:
-                    model_object = model(id=row['id'], title=Title.objects.get(
-                        id=row['title_id']), text=row['text'],
-                                         author=User.objects.get(
-                                             id=row['author']),
-                                         score=row['score'],
-                                         pub_date=row['pub_date'])
-                    model_object.save()
-                if model == Comment:
-                    model_object = model(id=row['id'],
-                                         review=Review.objects.get(
-                                             id=row['review_id']),
-                                         text=row['text'],
-                                         author=User.objects.get(
-                                             id=row['author']),
-                                         pub_date=row['pub_date'])
-                    model_object.save()
-                if model == 'Title m2m Genre':
-                    title_object = Title.objects.get(id=row['title_id'])
-                    title_object.genre.add(row['genre_id'])
+                self._create_model_object(model, row)
