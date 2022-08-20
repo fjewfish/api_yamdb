@@ -1,6 +1,6 @@
 import pytest
 
-from .common import auth_client, create_categories, create_users_api
+from tests.common import auth_client, create_categories, create_users_api
 
 
 class Test02CategoryAPI:
